@@ -119,7 +119,10 @@ for epoch in xrange(hm_epochs):
 	#print epoch_accuracy
 	#if epoch % 2 == 0:
 		#modelpath=os.path.join('/home/ayan/morphanalysis/pos_morph_data/PHASE_2/models',str(epoch))
-	modelpath=os.path.join('models/pos_crf_concat_word_embeddings_ILMT_check',str(epoch))
+	dirname = 'models/pos_crf_concat_word_embeddings_ILMT_check'
+	if not os.path.exists(dirname):
+		os.makedirs(dirname)
+	modelpath=os.path.join(dirname,str(epoch))
 	os.system('mkdir '+modelpath)
 	saver.save(session,os.path.join(modelpath,'my-model.ckpt'), global_step=epoch)
 	# _, acc = session.run([accuracy], feed_dict={input_x: epoch_x, input_y: epoch_y})
