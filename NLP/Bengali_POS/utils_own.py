@@ -1,9 +1,18 @@
 import numpy as np
 
-def get_poslist(filename):
-    with open(filename, 'r') as f:
-        pos = [l.strip().split()[2] for l in f if(l.strip() != '' and l.strip().split()[0] != '#')]
-    return set(pos)
+def get_poslist(fname):
+	poslist=set()
+	with open(fname,'r') as f:
+		for l in f:
+			if l.strip() and len(l.strip().split()) > 1 and l.strip().split()[0] != '#':
+				#print l
+				p = l.strip().split()[2]
+				p = p.split(':?')[0]
+				p = p.split('?')[0]
+				if p == "'":
+					p = l.strip().split()[3]
+				poslist.add(p)
+	return list(poslist)
 
 # with open('Data/data1','r') as f:
 # 	for l in f:

@@ -4,7 +4,7 @@ import numpy as np
 from utils import *
 
 
-word_embeddings, poslist,X,Y = load_words()
+word_embeddings, poslist,X,Y = load_words('data2')
 
 hm_epochs = 1000
 emb_size=300
@@ -13,13 +13,13 @@ layers_count=3
 class_counts=len(poslist)
 
 vocab_size=word_embeddings.shape[0]
-print vocab_size
+print 'vocab_size =', vocab_size
 lr=0.0001
 learning_rate = lr
 batch_size = 1
 word_embedding_weights=word_embeddings
 word_embedding_weights=tf.cast(tf.reshape(word_embedding_weights, [len(word_embedding_weights),len(word_embedding_weights[0])]), tf.float32)
-print word_embedding_weights.shape
+print 'word_embedding_weights.shape =', word_embedding_weights.shape
 transition_params=tf.get_variable('transition_params',[len(poslist), len(poslist)])
 
 
@@ -111,7 +111,7 @@ for epoch in xrange(hm_epochs):
 		batch_count+=1
 		if batch_count % 1000 == 0:
 			print batch_count
-		#print 'accuracy = ', acc
+		#print batch_count, 'accuracy = ', acc
 	print 'Epoch loss = ', epoch_loss, 'Epoch = ', epoch
 	#for feat in featurelistsdict:
 	#	epoch_accuracy[feat]=epoch_accuracy[feat]/batch_count
@@ -119,7 +119,7 @@ for epoch in xrange(hm_epochs):
 	#print epoch_accuracy
 	#if epoch % 2 == 0:
 		#modelpath=os.path.join('/home/ayan/morphanalysis/pos_morph_data/PHASE_2/models',str(epoch))
-	modelpath=os.path.join('/home/ayan/morphanalysis/models/pos_crf_concat_word_embeddings_ILMT',str(epoch))
+	modelpath=os.path.join('models/pos_crf_concat_word_embeddings_ILMT_check',str(epoch))
 	os.system('mkdir '+modelpath)
 	saver.save(session,os.path.join(modelpath,'my-model.ckpt'), global_step=epoch)
 	# _, acc = session.run([accuracy], feed_dict={input_x: epoch_x, input_y: epoch_y})

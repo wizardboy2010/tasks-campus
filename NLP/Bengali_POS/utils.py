@@ -1,19 +1,28 @@
 import os, sys, re
 import numpy as np
 import tensorflow as tf
+from tqdm import tqdm
 #featlist= ['Pos', 'Case', 'Polarity', 'Animacy', 'Mood', 'Definiteness', 'Verbform', 'Number', 'Person', 'Tense', 'Aspect', 'Honorific', 'Proper', 'Emphatic', 'Prontype']
 
 def get_poslist(fname):
 	poslist=set()
 	with open(fname,'r') as f:
 		for l in f:
-			if l.strip() and len(l.strip().split()) > 1:
-				#print l
-				poslist.add(l.strip().split()[1])
+			if l.strip() and len(l.strip().split()) > 1 and l.strip().split()[0] != '#':
+				p = clean_pos(l)
+				poslist.add(p)
 	return list(poslist)
 
+def clean_pos(l):
+ 	p= l.strip().split()[2]
+	p = p.split(':?')[0]
+	p = p.split('?')[0]
+	if p == "'":
+		p = l.strip().split()[3]
+	return p
 
-def load_words():
+
+def load_words(data_type = 'data1'):
 	X = []
 	X1=[]
 
@@ -29,23 +38,23 @@ def load_words():
 
 	#word_idx=['ADV', 'NOUN', 'ADP', 'PRON', 'SCONJ', 'PROPN', 'DET', 'SYM', 'INTJ', 'PART', 'PUNCT', 'VERB', 'X', 'AUX', 'CCONJ', 'NUM', 'ADJ']
 	#pos_idx=get_poslist('bn.data')
-	poslist=get_poslist('/home/ayan/morphanalysis/pos_morph_codes/pos_for_ILMT_data/postagger.26904.tnt.utf.1')
+	poslist=get_poslist('Data/'+data_type)
 
 	
 	#with open('/home/ayan/morphanalysis/pos_morph_data/PHASE_2/embeddings.txt') as f1:
-	with open('/home/ayan/morphanalysis/embeddings.txt') as f1:
-		for line1 in f1:
+	with open('Data/embeddings.txt') as f1:
+		for line1 in tqdm(f1):
 			word_embeddings2[line1.strip().split(' ')[0]]=[float(i) for i in line1.strip().split()[1:]]
 	for key in word_embeddings2:
 		word_embeddings.append(word_embeddings2[key])
 
 	#with open('/home/ayan/morphanalysis/pos_morph_data/PHASE_2/bn.data.phase_1_2') as f:
-	with open('/home/ayan/morphanalysis/pos_morph_codes/pos_for_ILMT_data/postagger.26904.tnt.utf.1') as f:
-			for line in f:
-				if line.strip() != '' and len(line.strip().split()) > 1:
+	with open('Data/'+data_type) as f:
+			for line in tqdm(f):
+				if line.strip() != '' and len(line.strip().split()) > 1  and line.strip().split()[0] != '#':
 					#if line.strip() == ' SYM':
 					#	continue
-					word=line.strip().split()[0]
+					word=line.strip().split()[1]
 					'''
 					if word not in word_embeddings2:
 						print 'oov found'
@@ -62,7 +71,8 @@ def load_words():
 					if word in word_embeddings2:
 						words.append(word)
 		 				X1.append(word_embeddings2.keys().index(word))
-						Y1.append(poslist.index(line.strip().split()[1]))
+						Y1.append(poslist.index(clean_pos(line)))
+						#print word, word_embeddings2.keys().index(word), poslist.index(line.strip().split()[2])
 					else:
 						print 'word = ', word, line
 						#line.strip().split('\t')[4])
@@ -83,8 +93,9 @@ def load_words():
 	blank=np.zeros(300)
 	#print word_embeddings.shape, blank.shape, X.shape, Y.shape, unk.shape
 	word_embeddings=np.vstack([word_embeddings,unk,blank])
-	print len(word_embeddings)
+	#print len(word_embeddings)
  	return word_embeddings, poslist,X,Y
 
 if __name__ == "__main__":
-	word_embeddings, poslist,X,Y=load_words()
+	word_embeddings, poslist,X,Y=load_words('data1')
+	print X, Y
