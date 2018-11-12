@@ -6,7 +6,7 @@ from utils import *
 
 word_embeddings, poslist,X,Y = load_words('data2')
 
-hm_epochs = 1000
+hm_epochs = 500
 emb_size=300
 hidden_size=300
 layers_count=3
