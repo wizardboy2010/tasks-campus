@@ -32,84 +32,45 @@ int print_both(Mat& image, Mat& image1, bool horizantal = 1)
 }
 
 // Laplacian of Gaussian on a Greyscale Image
-int part3(Mat& image, int std)
+int LoG(Mat& image, int std)
 {
 	Mat blur, dst, abs_dst;
 
-	namedWindow("result", WINDOW_NORMAL);
+	namedWindow("blur img");
 
     /// Remove noise by blurring with a Gaussian filter
-    GaussianBlur( image, blur, Size(0,0), std, std, BORDER_DEFAULT );
-    imshow("result", image );
+    GaussianBlur( image, blur, Size(0,0), std, std);
+    imshow("blur img", image );
     waitKey(0);
-    imshow("result", blur );
+    imshow("blur img", blur );
     waitKey(0);
  
     /// Apply Laplace function
-    Laplacian( blur, dst, CV_16S, 3, 1, 0, BORDER_DEFAULT );
+    namedWindow("result");
+    Laplacian( blur, dst, CV_32F, 3, 1, 1);
     imshow( "result", dst );
     waitKey(0);
     convertScaleAbs(dst, abs_dst );
     imshow( "result", abs_dst );
     waitKey(0);
-    destroyWindow("result");
+    destroyAllWindows();
 
     return 0;
 }
 
-static void floodFillPostprocess( Mat& img, const Scalar& colorDiff=Scalar::all(1) )
-{
-    CV_Assert( !img.empty() );
-    RNG rng = theRNG();
-    Mat mask( img.rows+2, img.cols+2, CV_8UC1, Scalar::all(0) );
-    for( int y = 0; y < img.rows; y++ )
-    {
-        for( int x = 0; x < img.cols; x++ )
-        {
-            if( mask.at<uchar>(y+1, x+1) == 0 )
-            {
-                Scalar newVal( rng(256), rng(256), rng(256) );
-                floodFill( img, mask, Point(x,y), newVal, 0, colorDiff, colorDiff );
-            }
-        }
-    }
-}
-
-static void meanShiftSegmentation( int, void* )
-{
-    cout << "spatialRad=" << spatialRad << "; "
-         << "colorRad=" << colorRad << "; "
-         << "maxPyrLevel=" << maxPyrLevel << endl;
-    pyrMeanShiftFiltering( img, res, spatialRad, colorRad, maxPyrLevel );
-    floodFillPostprocess( res, Scalar::all(2) );
-    imshow( winName, res );
-}
-
-int part4()
-{
-	spatialRad = 20;
-    colorRad = 50;
-    maxPyrLevel = 1;
-
-    namedWindow( winName, CV_WINDOW_AUTOSIZE );
-
-    pyrMeanShiftFiltering( img, res, spatialRad, colorRad, maxPyrLevel );
-    //floodFillPostprocess( res, Scalar::all(2) );
-    imshow( winName, res );
-
-    // createTrackbar( "spatialRad", winName, &spatialRad, 80, meanShiftSegmentation );
-    // createTrackbar( "colorRad", winName, &colorRad, 60, meanShiftSegmentation );
-    // createTrackbar( "maxPyrLevel", winName, &maxPyrLevel, 5, meanShiftSegmentation );
-
-    meanShiftSegmentation(0, 0);
+int meanshift(Mat& image){
+    Mat msf;
+    double spatialWindowRadius = 20;
+    double colorWindowRadius = 50;
+    pyrMeanShiftFiltering(image, msf, spatialWindowRadius,colorWindowRadius);
+    namedWindow("Mean Shift Filtering");
+    imshow("Mean Shift Filtering",msf);
     waitKey(0);
-
-    destroyWindow(winName);
-
+    destroyWindow("Mean Shift Filtering");
     return 0;
 }
 
-int part5(Mat& image)
+int harris(Mat& image)
 {
     /// Detector parameters
     int blockSize = 2;
@@ -125,12 +86,99 @@ int part5(Mat& image)
     /// Normalizing
     normalize( dest, dest_norm, 0, 255, NORM_MINMAX, CV_32FC1, Mat() );
     convertScaleAbs(dest_norm, dest_norm_scaled);
+    equalizeHist(dest_norm_scaled, dest_norm_scaled);
 
     namedWindow("Harris", WINDOW_NORMAL);
     imshow("Harris", dest_norm_scaled);
     waitKey(0);
     destroyWindow("Harris");
 
+}
+
+int le_gall(Mat& img, Mat& out)
+{
+    Mat noise(img.size(), img.type()), noisy_img;
+    randn(noise, 0, 25);
+    noisy_img = img+noise;
+    imshow("noise", noisy_img);
+    waitKey(0);
+    destroyWindow("noise");
+
+    Mat analyse_low = (Mat_<double>(1,5) << -0.125, 0.25, 0.75, 0.25, -0.125);
+    Mat analyse_high = (Mat_<double>(1,3) << -0.5, 1, -0.5);
+    Mat syn_low = (Mat_<double>(1, 3) << 0.5, 1, 0.5);
+    Mat syn_high = (Mat_<double>(1, 5) << -0.125, 0.25, 0.75, 0.25, -0.125);
+
+    Mat img_low, img_high, img_ll, img_lh, img_hl, img_hh;
+
+    // low pass
+    filter2D(noisy_img, img_low, -1, analyse_low);
+    resize(img_low, img_low, Size(img_low.cols/2, img_low.rows));
+
+    // high pass
+    filter2D(noisy_img, img_high, -1, analyse_high);
+    resize(img_high, img_high, Size(img_high.cols/2, img_high.rows));
+
+    rotate(analyse_low, analyse_low, ROTATE_90_CLOCKWISE);
+    rotate(analyse_high, analyse_high, ROTATE_90_CLOCKWISE);
+
+    // LL
+    filter2D(img_low, img_ll, -1, analyse_low);
+    resize(img_ll, img_ll, Size(img_low.cols, img_low.rows/2));
+    imshow("Low Low", img_ll);
+    waitKey(0);
+
+    //LH
+    filter2D(img_low, img_lh, -1, analyse_high);
+    resize(img_lh, img_lh, Size(img_low.cols, img_low.rows/2));
+    imshow("Low High", img_lh);
+    waitKey(0);
+
+    // HL
+    filter2D(img_high, img_hl, -1, analyse_low);
+    resize(img_hl, img_hl, Size(img_high.cols, img_high.rows/2));
+    imshow("High Low", img_hl);
+    waitKey(0);
+
+    //HH
+    filter2D(img_high, img_hh, -1, analyse_high);
+    resize(img_hh, img_hh, Size(img_high.cols, img_high.rows/2));
+    imshow("High High", img_hh);
+    waitKey(0);
+
+    //upsampling
+    resize(img_ll, img_ll, Size(img_ll.cols, img_ll.rows*2));
+    resize(img_lh, img_lh, Size(img_lh.cols, img_lh.rows*2));
+    resize(img_hl, img_hl, Size(img_hl.cols, img_hl.rows*2));
+    resize(img_hh, img_hh, Size(img_hh.cols, img_hh.rows*2));
+
+    rotate(syn_low, syn_low, ROTATE_90_CLOCKWISE);
+    rotate(syn_high, syn_high, ROTATE_90_CLOCKWISE);
+
+    // filter 1
+    filter2D(img_ll, img_ll, -1, syn_low);
+    filter2D(img_lh, img_lh, -1, syn_high);
+    filter2D(img_hl, img_hl, -1, syn_low);
+    filter2D(img_hh, img_hh, -1, syn_high);
+
+    img_low = img_ll + img_lh;
+    img_high = img_hl + img_hh;
+
+    resize(img_low, img_low, Size(img_low.cols*2, img_low.rows));
+    resize(img_high, img_high, Size(img_high.cols*2, img_high.rows));
+
+    rotate(syn_low, syn_low, ROTATE_90_CLOCKWISE);
+    rotate(syn_high, syn_high, ROTATE_90_CLOCKWISE);
+
+    filter2D(img_low, img_low, -1, syn_low);
+    filter2D(img_high, img_high, -1, syn_high);
+
+    out = img_low + img_high;
+
+    imshow("created output", out);
+    waitKey(0);
+
+    return 0;
 }
 
 int main()
@@ -143,13 +191,17 @@ int main()
 	
 	print_both(img, grey, 0);
 
-    cvtColor(grey, grey, COLOR_BGR2GRAY);
+    Mat legall;
 
-	part3(grey, 2.5);
+    le_gall(grey, legall);
 
-	part4();
+    //cvtColor(grey, grey, COLOR_BGR2GRAY);
 
-    part5(grey);
+	//LoG(grey, 5);
+
+	//meanshift(img);
+
+    //harris(grey);
 
 	return 0;
 }
